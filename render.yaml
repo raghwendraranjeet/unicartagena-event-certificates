@@ -12,6 +12,8 @@ services:
         value: production
       - key: DATABASE_PATH
         value: /var/data/registrations.db
+      - key: PUBLIC_SITE_ORIGIN
+        value: https://raghwendraranjeet.github.io
     disk:
       name: registrations
       mountPath: /var/data

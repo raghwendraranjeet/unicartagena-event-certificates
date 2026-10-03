@@ -44,8 +44,21 @@ const json = (res, status, value) => {
   res.end(body);
 };
 
+const allowedOrigin = process.env.PUBLIC_SITE_ORIGIN || '';
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
+  const origin = req.headers.origin;
+  if (origin && origin === allowedOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Vary', 'Origin');
+  }
+  if (req.method === 'OPTIONS' && url.pathname.startsWith('/api/')) {
+    if (!allowedOrigin || origin !== allowedOrigin) return res.writeHead(403).end();
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.writeHead(204).end();
+  }
   if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true });
   if (req.method === 'GET' && url.pathname === '/api/next-id') return json(res, 200, { id: nextId() });
   if (req.method === 'GET' && url.pathname === '/api/me') {
@@ -66,7 +79,8 @@ const server = createServer(async (req, res) => {
       const token = randomBytes(32).toString('base64url');
       sessions.set(token, username);
       const secureCookie = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-      res.setHeader('Set-Cookie', `event_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${secureCookie}`);
+      const sameSite = process.env.NODE_ENV === 'production' ? 'None' : 'Lax';
+      res.setHeader('Set-Cookie', `event_session=${token}; HttpOnly; SameSite=${sameSite}; Path=/; Max-Age=86400${secureCookie}`);
       return json(res, 200, { user: publicUser(row) });
     } catch { return json(res, 400, { error: 'Please enter your username and password.' }); }
   }
@@ -74,7 +88,8 @@ const server = createServer(async (req, res) => {
     const token = (req.headers.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith('event_session='))?.slice('event_session='.length);
     if (token) sessions.delete(token);
     const secureCookie = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-    res.setHeader('Set-Cookie', `event_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secureCookie}`);
+    const sameSite = process.env.NODE_ENV === 'production' ? 'None' : 'Lax';
+    res.setHeader('Set-Cookie', `event_session=; HttpOnly; SameSite=${sameSite}; Path=/; Max-Age=0${secureCookie}`);
     return json(res, 200, { ok: true });
   }
   if (req.method === 'POST' && url.pathname === '/api/register') {

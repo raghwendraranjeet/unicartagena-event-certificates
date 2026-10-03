@@ -6,7 +6,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 
 const root = dirname(fileURLToPath(import.meta.url));
-const db = new DatabaseSync(join(root, 'registrations.db'));
+const db = new DatabaseSync(process.env.DATABASE_PATH || join(root, 'registrations.db'));
 db.exec(`CREATE TABLE IF NOT EXISTS registrations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   full_name TEXT NOT NULL,
@@ -65,14 +65,16 @@ const server = createServer(async (req, res) => {
       if (submitted.length !== stored.length || !timingSafeEqual(submitted, stored)) return json(res, 401, { error: 'Username or password is incorrect.' });
       const token = randomBytes(32).toString('base64url');
       sessions.set(token, username);
-      res.setHeader('Set-Cookie', `event_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400`);
+      const secureCookie = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+      res.setHeader('Set-Cookie', `event_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${secureCookie}`);
       return json(res, 200, { user: publicUser(row) });
     } catch { return json(res, 400, { error: 'Please enter your username and password.' }); }
   }
   if (req.method === 'POST' && url.pathname === '/api/logout') {
     const token = (req.headers.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith('event_session='))?.slice('event_session='.length);
     if (token) sessions.delete(token);
-    res.setHeader('Set-Cookie', 'event_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
+    const secureCookie = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+    res.setHeader('Set-Cookie', `event_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secureCookie}`);
     return json(res, 200, { ok: true });
   }
   if (req.method === 'POST' && url.pathname === '/api/register') {
@@ -112,5 +114,6 @@ const server = createServer(async (req, res) => {
   res.writeHead(404).end();
 });
 
-server.listen(8000, '127.0.0.1', () => console.log('Event certificates app: http://localhost:8000'));
+const port = Number(process.env.PORT || 8000);
+server.listen(port, '0.0.0.0', () => console.log(`Event certificates app listening on port ${port}`));
 

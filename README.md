@@ -2,6 +2,10 @@
 
 Aplicación web para inscribir asistentes o ponentes y generar certificados personalizados de la Universidad de Cartagena.
 
+## Documentation / Documentación
+
+[Read the complete documentation in English and Spanish / Lee la documentación completa en inglés y español](DOCUMENTATION.md).
+
 ## Iniciar
 
 Requiere Node.js 22 o posterior. Desde esta carpeta, ejecuta:

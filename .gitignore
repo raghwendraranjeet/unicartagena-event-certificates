@@ -1,0 +1,8 @@
+registrations.db
+registrations.db-shm
+registrations.db-wal
+node_modules/
+.env
+.env.*
+!.env.example
+

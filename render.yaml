@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: unicartagena-event-certificates
+    runtime: node
+    plan: 0.5c-512mb
+    region: ohio
+    buildCommand: node --version
+    startCommand: node server.mjs
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /var/data/registrations.db
+    disk:
+      name: registrations
+      mountPath: /var/data
+      sizeGB: 1
+
